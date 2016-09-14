@@ -74,15 +74,15 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 throw new ArgumentNullException(nameof(context));
             }
 
-            var varyRules = context.CachedVaryRules;
-            if  (varyRules == null)
+            var varyByRules = context.CachedVaryByRules;
+            if  (varyByRules == null)
             {
-                throw new InvalidOperationException($"{nameof(CachedVaryRules)} must not be null on the {nameof(ResponseCacheContext)}");
+                throw new InvalidOperationException($"{nameof(CachedVaryByRules)} must not be null on the {nameof(ResponseCacheContext)}");
             }
 
-            if ((StringValues.IsNullOrEmpty(varyRules.Headers) && StringValues.IsNullOrEmpty(varyRules.Params)))
+            if ((StringValues.IsNullOrEmpty(varyByRules.Headers) && StringValues.IsNullOrEmpty(varyByRules.Params)))
             {
-                return varyRules.VaryKeyPrefix;
+                return varyByRules.VaryByKeyPrefix;
             }
 
             var request = context.HttpContext.Request;
@@ -90,17 +90,17 @@ namespace Microsoft.AspNetCore.ResponseCaching
 
             try
             {
-                // Prepend with the Guid of the CachedVaryRules
-                builder.Append(varyRules.VaryKeyPrefix);
+                // Prepend with the Guid of the CachedVaryByRules
+                builder.Append(varyByRules.VaryByKeyPrefix);
 
                 // Vary by headers
-                if (varyRules?.Headers.Count > 0)
+                if (varyByRules?.Headers.Count > 0)
                 {
                     // Append a group separator for the header segment of the cache key
                     builder.Append(KeyDelimiter)
                         .Append('H');
 
-                    foreach (var header in varyRules.Headers)
+                    foreach (var header in varyByRules.Headers)
                     {
                         builder.Append(KeyDelimiter)
                             .Append(header)
@@ -111,13 +111,13 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 }
 
                 // Vary by query params
-                if (varyRules?.Params.Count > 0)
+                if (varyByRules?.Params.Count > 0)
                 {
                     // Append a group separator for the query parameter segment of the cache key
                     builder.Append(KeyDelimiter)
                         .Append('Q');
 
-                    if (varyRules.Params.Count == 1 && string.Equals(varyRules.Params[0], "*", StringComparison.Ordinal))
+                    if (varyByRules.Params.Count == 1 && string.Equals(varyByRules.Params[0], "*", StringComparison.Ordinal))
                     {
                         // Vary by all available query params
                         foreach (var query in context.HttpContext.Request.Query.OrderBy(q => q.Key, StringComparer.OrdinalIgnoreCase))
@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
                     }
                     else
                     {
-                        foreach (var param in varyRules.Params)
+                        foreach (var param in varyByRules.Params)
                         {
                             builder.Append(KeyDelimiter)
                                 .Append(param)

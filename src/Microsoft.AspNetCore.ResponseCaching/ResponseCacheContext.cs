@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
 
         public CachedResponse CachedResponse { get; internal set; }
 
-        public CachedVaryRules CachedVaryRules { get; internal set; }
+        public CachedVaryByRules CachedVaryByRules { get; internal set; }
 
         internal bool ResponseStarted { get; set; }
 

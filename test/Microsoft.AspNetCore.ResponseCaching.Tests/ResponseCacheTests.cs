@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.ResponseCaching.Tests
 {
-    public class ResponseCachingTests
+    public class ResponseCacheTests
     {
         [Fact]
         public async void ServesCachedContent_IfAvailable()
@@ -92,7 +92,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = "param";
+                context.GetResponseCacheFeature().VaryByParams = "param";
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = new[] { "ParamA", "paramb" };
+                context.GetResponseCacheFeature().VaryByParams = new[] { "ParamA", "paramb" };
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = new[] { "*" };
+                context.GetResponseCacheFeature().VaryByParams = new[] { "*" };
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -149,7 +149,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = new[] { "ParamB", "ParamA" };
+                context.GetResponseCacheFeature().VaryByParams = new[] { "ParamB", "ParamA" };
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -168,7 +168,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = new[] { "*" };
+                context.GetResponseCacheFeature().VaryByParams = new[] { "*" };
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -187,7 +187,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = "param";
+                context.GetResponseCacheFeature().VaryByParams = "param";
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -206,7 +206,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = new[] { "ParamA", "ParamB" };
+                context.GetResponseCacheFeature().VaryByParams = new[] { "ParamA", "ParamB" };
                 await TestUtils.DefaultRequestDelegate(context);
             });
 
@@ -225,7 +225,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var builder = TestUtils.CreateBuilderWithResponseCache(requestDelegate: async (context) =>
             {
-                context.GetResponseCacheFeature().VaryParams = new[] { "*" };
+                context.GetResponseCacheFeature().VaryByParams = new[] { "*" };
                 await TestUtils.DefaultRequestDelegate(context);
             });
 

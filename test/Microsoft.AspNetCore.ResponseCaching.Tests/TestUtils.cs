@@ -78,32 +78,32 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         internal static ResponseCacheMiddleware CreateTestMiddleware(
             IResponseCacheStore responseCache = null,
             ResponseCacheOptions options = null,
-            IResponseCacheKeyProvider cacheKeyProvider = null,
-            IResponseCachePolicyProvider cacheabilityValidator = null)
+            IResponseCacheKeyProvider responseCacheKeyProvider = null,
+            IResponseCachePolicyProvider responseCachePolicyProvider = null)
         {
             if (responseCache == null)
             {
-                responseCache = new TestResponseCache();
+                responseCache = new TestResponseCacheStore();
             }
             if (options == null)
             {
                 options = new ResponseCacheOptions();
             }
-            if (cacheKeyProvider == null)
+            if (responseCacheKeyProvider == null)
             {
-                cacheKeyProvider = new ResponseCacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
+                responseCacheKeyProvider = new ResponseCacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
             }
-            if (cacheabilityValidator == null)
+            if (responseCachePolicyProvider == null)
             {
-                cacheabilityValidator = new TestCacheabilityValidator();
+                responseCachePolicyProvider = new TestResponseCachePolicyProvider();
             }
 
             return new ResponseCacheMiddleware(
                 httpContext => TaskCache.CompletedTask,
                 responseCache,
                 Options.Create(options),
-                cacheabilityValidator,
-                cacheKeyProvider);
+                responseCachePolicyProvider,
+                responseCacheKeyProvider);
         }
 
         internal static ResponseCacheContext CreateTestContext()
@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
     }
 
-    internal class TestCacheabilityValidator : IResponseCachePolicyProvider
+    internal class TestResponseCachePolicyProvider : IResponseCachePolicyProvider
     {
         public bool IsCachedEntryFresh(ResponseCacheContext context) => true;
 
@@ -129,12 +129,12 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         public bool IsResponseCacheable(ResponseCacheContext context) => true;
     }
 
-    internal class TestKeyProvider : IResponseCacheKeyProvider
+    internal class TestResponseCacheKeyProvider : IResponseCacheKeyProvider
     {
         private readonly string _baseKey;
         private readonly StringValues _varyKey;
 
-        public TestKeyProvider(string lookupBaseKey = null, StringValues? lookupVaryKey = null)
+        public TestResponseCacheKeyProvider(string lookupBaseKey = null, StringValues? lookupVaryKey = null)
         {
             _baseKey = lookupBaseKey;
             if (lookupVaryKey.HasValue)
@@ -162,7 +162,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
     }
 
-    internal class TestResponseCache : IResponseCacheStore
+    internal class TestResponseCacheStore : IResponseCacheStore
     {
         private readonly IDictionary<string, object> _storage = new Dictionary<string, object>();
         public int GetCount { get; private set; }
@@ -189,14 +189,6 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             SetCount++;
             _storage[key] = entry;
-        }
-    }
-
-    internal class TestHttpSendFileFeature : IHttpSendFileFeature
-    {
-        public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellation)
-        {
-            return TaskCache.CompletedTask;
         }
     }
 }

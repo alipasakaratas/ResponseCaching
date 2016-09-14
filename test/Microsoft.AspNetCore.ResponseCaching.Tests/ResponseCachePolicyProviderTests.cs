@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.ResponseCaching.Tests
 {
-    public class CacheabilityValidatorTests
+    public class ResponseCachePolicyProviderTests
     {
         [Theory]
         [InlineData("GET")]

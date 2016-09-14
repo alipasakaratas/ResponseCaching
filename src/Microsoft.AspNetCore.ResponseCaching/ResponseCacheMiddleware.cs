@@ -23,16 +23,16 @@ namespace Microsoft.AspNetCore.ResponseCaching
         private readonly RequestDelegate _next;
         private readonly IResponseCacheStore _cache;
         private readonly ResponseCacheOptions _options;
-        private readonly IResponseCachePolicyProvider _cacheabilityValidator;
-        private readonly IResponseCacheKeyProvider _cacheKeyProvider;
+        private readonly IResponseCachePolicyProvider _responseCachePolicyProvider;
+        private readonly IResponseCacheKeyProvider _responseCacheKeyProvider;
         private readonly Func<object, Task> _onStartingCallback;
 
         public ResponseCacheMiddleware(
             RequestDelegate next,
             IResponseCacheStore cache,
             IOptions<ResponseCacheOptions> options,
-            IResponseCachePolicyProvider cacheabilityValidator,
-            IResponseCacheKeyProvider cacheKeyProvider)
+            IResponseCachePolicyProvider responseCachePolicyProvider,
+            IResponseCacheKeyProvider responseCacheKeyProvider)
         {
             if (next == null)
             {
@@ -46,20 +46,20 @@ namespace Microsoft.AspNetCore.ResponseCaching
             {
                 throw new ArgumentNullException(nameof(options));
             }
-            if (cacheabilityValidator == null)
+            if (responseCachePolicyProvider == null)
             {
-                throw new ArgumentNullException(nameof(cacheabilityValidator));
+                throw new ArgumentNullException(nameof(responseCachePolicyProvider));
             }
-            if (cacheKeyProvider == null)
+            if (responseCacheKeyProvider == null)
             {
-                throw new ArgumentNullException(nameof(cacheKeyProvider));
+                throw new ArgumentNullException(nameof(responseCacheKeyProvider));
             }
 
             _next = next;
             _cache = cache;
             _options = options.Value;
-            _cacheabilityValidator = cacheabilityValidator;
-            _cacheKeyProvider = cacheKeyProvider;
+            _responseCachePolicyProvider = responseCachePolicyProvider;
+            _responseCacheKeyProvider = responseCacheKeyProvider;
             _onStartingCallback = state =>
             {
                 OnResponseStarting((ResponseCacheContext)state);
@@ -72,7 +72,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
             var context = new ResponseCacheContext(httpContext);
 
             // Should we attempt any caching logic?
-            if (_cacheabilityValidator.IsRequestCacheable(context))
+            if (_responseCachePolicyProvider.IsRequestCacheable(context))
             {
                 // Can this request be served from cache?
                 if (await TryServeFromCacheAsync(context))
@@ -116,7 +116,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
             var cachedEntryAge = context.ResponseTime - context.CachedResponse.Created;
             context.CachedEntryAge = cachedEntryAge > TimeSpan.Zero ? cachedEntryAge : TimeSpan.Zero;
 
-            if (_cacheabilityValidator.IsCachedEntryFresh(context))
+            if (_responseCachePolicyProvider.IsCachedEntryFresh(context))
             {
                 // Check conditional request rules
                 if (ConditionalRequestSatisfied(context))
@@ -168,15 +168,15 @@ namespace Microsoft.AspNetCore.ResponseCaching
 
         internal async Task<bool> TryServeFromCacheAsync(ResponseCacheContext context)
         {
-            context.BaseKey = _cacheKeyProvider.CreateBaseKey(context);
+            context.BaseKey = _responseCacheKeyProvider.CreateBaseKey(context);
             var cacheEntry = _cache.Get(context.BaseKey);
 
-            if (cacheEntry is CachedVaryRules)
+            if (cacheEntry is CachedVaryByRules)
             {
                 // Request contains vary rules, recompute key(s) and try again
-                context.CachedVaryRules = (CachedVaryRules)cacheEntry;
+                context.CachedVaryByRules = (CachedVaryByRules)cacheEntry;
 
-                foreach (var varyKey in _cacheKeyProvider.CreateLookupVaryByKeys(context))
+                foreach (var varyKey in _responseCacheKeyProvider.CreateLookupVaryByKeys(context))
                 {
                     cacheEntry = _cache.Get(varyKey);
 
@@ -204,15 +204,15 @@ namespace Microsoft.AspNetCore.ResponseCaching
 
         internal void FinalizeCacheHeaders(ResponseCacheContext context)
         {
-            if (_cacheabilityValidator.IsResponseCacheable(context))
+            if (_responseCachePolicyProvider.IsResponseCacheable(context))
             {
                 context.ShouldCacheResponse = true;
-                context.BaseKey = _cacheKeyProvider.CreateBaseKey(context);
+                context.BaseKey = _responseCacheKeyProvider.CreateBaseKey(context);
 
                 // Create the cache entry now
                 var response = context.HttpContext.Response;
                 var varyHeaderValue = response.Headers[HeaderNames.Vary];
-                var varyParamsValue = context.HttpContext.GetResponseCacheFeature()?.VaryParams ?? StringValues.Empty;
+                var varyParamsValue = context.HttpContext.GetResponseCacheFeature()?.VaryByParams ?? StringValues.Empty;
                 context.CachedResponseValidFor = context.ResponseCacheControlHeaderValue.SharedMaxAge ??
                     context.ResponseCacheControlHeaderValue.MaxAge ??
                     (context.TypedResponseHeaders.Expires - context.ResponseTime) ??
@@ -226,21 +226,21 @@ namespace Microsoft.AspNetCore.ResponseCaching
                     var normalizedVaryParamsValue = GetNormalizedStringValues(varyParamsValue);
 
                     // Update vary rules if they are different
-                    if (context.CachedVaryRules == null ||
-                        !StringValues.Equals(context.CachedVaryRules.Params, normalizedVaryParamsValue) ||
-                        !StringValues.Equals(context.CachedVaryRules.Headers, normalizedVaryHeaderValue))
+                    if (context.CachedVaryByRules == null ||
+                        !StringValues.Equals(context.CachedVaryByRules.Params, normalizedVaryParamsValue) ||
+                        !StringValues.Equals(context.CachedVaryByRules.Headers, normalizedVaryHeaderValue))
                     {
-                        context.CachedVaryRules = new CachedVaryRules
+                        context.CachedVaryByRules = new CachedVaryByRules
                         {
-                            VaryKeyPrefix = FastGuid.NewGuid().IdString,
+                            VaryByKeyPrefix = FastGuid.NewGuid().IdString,
                             Headers = normalizedVaryHeaderValue,
                             Params = normalizedVaryParamsValue
                         };
 
-                        _cache.Set(context.BaseKey, context.CachedVaryRules, context.CachedResponseValidFor);
+                        _cache.Set(context.BaseKey, context.CachedVaryByRules, context.CachedResponseValidFor);
                     }
 
-                    context.StorageVaryKey = _cacheKeyProvider.CreateStorageVaryByKey(context);
+                    context.StorageVaryKey = _responseCacheKeyProvider.CreateStorageVaryByKey(context);
                 }
 
                 // Ensure date header is set

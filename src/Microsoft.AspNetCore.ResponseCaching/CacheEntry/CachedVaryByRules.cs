@@ -5,9 +5,9 @@ using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.AspNetCore.ResponseCaching
 {
-    public class CachedVaryRules
+    public class CachedVaryByRules
     {
-        public string VaryKeyPrefix { get; set; }
+        public string VaryByKeyPrefix { get; set; }
 
         public StringValues Headers { get; set; }
 

@@ -8,6 +8,6 @@ namespace Microsoft.AspNetCore.ResponseCaching
     // TODO: Temporary interface for endpoints to specify options for response caching
     public class ResponseCacheFeature
     {
-        public StringValues VaryParams { get; set; }
+        public StringValues VaryByParams { get; set; }
     }
 }
