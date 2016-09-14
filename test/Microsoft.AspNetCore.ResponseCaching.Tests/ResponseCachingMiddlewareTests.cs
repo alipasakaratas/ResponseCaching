@@ -554,25 +554,68 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void NormalizeStringValues_NormalizesCasingToUpper()
+        public void GetOrderCasingNormalizedStringValues_NormalizesCasingToUpper()
         {
             var uppercaseStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
             var lowercaseStrings = new StringValues(new[] { "stringA", "stringB" });
 
-            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedStringValues(lowercaseStrings);
+            var normalizedStrings = ResponseCachingMiddleware.GetOrderCasingNormalizedStringValues(lowercaseStrings);
 
             Assert.Equal(uppercaseStrings, normalizedStrings);
         }
 
         [Fact]
-        public void NormalizeStringValues_NormalizesOrder()
+        public void GetOrderCasingNormalizedStringValues_NormalizesOrder()
         {
             var orderedStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
             var reverseOrderStrings = new StringValues(new[] { "STRINGB", "STRINGA" });
 
-            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedStringValues(reverseOrderStrings);
+            var normalizedStrings = ResponseCachingMiddleware.GetOrderCasingNormalizedStringValues(reverseOrderStrings);
 
             Assert.Equal(orderedStrings, normalizedStrings);
+        }
+
+        [Fact]
+        public void GetOrderCasingNormalizedStringValues_PreservesCommas()
+        {
+            var originalStrings = new StringValues(new[] { "STRINGA, STRINGB" });
+
+            var normalizedStrings = ResponseCachingMiddleware.GetOrderCasingNormalizedStringValues(originalStrings);
+
+            Assert.Equal(originalStrings, normalizedStrings);
+        }
+
+        [Fact]
+        public void GetNormalizedHeaderStringValues_NormalizesCasingToUpper()
+        {
+            var uppercaseStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
+            var lowercaseStrings = new StringValues(new[] { "stringA", "stringB" });
+
+            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedHeaderStringValues(lowercaseStrings);
+
+            Assert.Equal(uppercaseStrings, normalizedStrings);
+        }
+
+        [Fact]
+        public void GetNormalizedHeaderStringValues_NormalizesOrder()
+        {
+            var orderedStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
+            var reverseOrderStrings = new StringValues(new[] { "STRINGB", "STRINGA" });
+
+            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedHeaderStringValues(reverseOrderStrings);
+
+            Assert.Equal(orderedStrings, normalizedStrings);
+        }
+
+        [Fact]
+        public void GetNormalizedHeaderStringValues_SplitHeadersWithCommas()
+        {
+            var originalStrings = new StringValues(new[] { "stringB, Stringa" });
+            var expectedStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
+
+            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedHeaderStringValues(originalStrings);
+
+            Assert.Equal(expectedStrings, normalizedStrings);
         }
     }
 }

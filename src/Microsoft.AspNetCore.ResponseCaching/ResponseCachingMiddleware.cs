@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -224,8 +225,8 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 if (!StringValues.IsNullOrEmpty(varyHeaderValue) || !StringValues.IsNullOrEmpty(varyParamsValue))
                 {
                     // Normalize order and casing of vary by rules
-                    var normalizedVaryHeaderValue = GetNormalizedStringValues(varyHeaderValue);
-                    var normalizedVaryParamsValue = GetNormalizedStringValues(varyParamsValue);
+                    var normalizedVaryHeaderValue = GetNormalizedHeaderStringValues(varyHeaderValue);
+                    var normalizedVaryParamsValue = GetOrderCasingNormalizedStringValues(varyParamsValue);
 
                     // Update vary rules if they are different
                     if (context.CachedVaryRules == null ||
@@ -375,8 +376,44 @@ namespace Microsoft.AspNetCore.ResponseCaching
             return false;
         }
 
+        // Split by commas and normalize order and casing
+        internal static StringValues GetNormalizedHeaderStringValues(StringValues stringValues)
+        {
+            var commaFound = false;
+
+            foreach (var value in stringValues)
+            {
+                if (value.Contains(","))
+                {
+                    commaFound = true;
+                    break;
+                }
+            }
+
+            if (!commaFound)
+            {
+                return GetOrderCasingNormalizedStringValues(stringValues);
+            }
+            else
+            {
+                var headers = new List<string>(stringValues.Count);
+                foreach (var value in stringValues)
+                {
+                    foreach (var header in value.Split(','))
+                    {
+                        headers.Add(header.Trim().ToUpperInvariant());
+                    }
+                }
+
+                // Since the casing has already been normalized, use Ordinal comparison
+                headers.Sort(StringComparer.Ordinal);
+
+                return new StringValues(headers.ToArray());
+            }
+        }
+
         // Normalize order and casing
-        internal static StringValues GetNormalizedStringValues(StringValues stringValues)
+        internal static StringValues GetOrderCasingNormalizedStringValues(StringValues stringValues)
         {
             if (stringValues.Count == 1)
             {
