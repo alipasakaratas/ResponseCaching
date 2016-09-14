@@ -34,19 +34,19 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             await context.Response.WriteAsync(uniqueId);
         };
 
-        internal static ICacheKeyProvider CreateTestKeyProvider()
+        internal static IResponseCacheKeyProvider CreateTestKeyProvider()
         {
-            return CreateTestKeyProvider(new ResponseCachingOptions());
+            return CreateTestKeyProvider(new ResponseCacheOptions());
         }
 
-        internal static ICacheKeyProvider CreateTestKeyProvider(ResponseCachingOptions options)
+        internal static IResponseCacheKeyProvider CreateTestKeyProvider(ResponseCacheOptions options)
         {
-            return new CacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
+            return new ResponseCacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
         }
 
-        internal static IWebHostBuilder CreateBuilderWithResponseCaching(
+        internal static IWebHostBuilder CreateBuilderWithResponseCache(
             Action<IApplicationBuilder> configureDelegate = null,
-            ResponseCachingOptions options = null,
+            ResponseCacheOptions options = null,
             RequestDelegate requestDelegate = null)
         {
             if (configureDelegate == null)
@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             }
             if (options == null)
             {
-                options = new ResponseCachingOptions();
+                options = new ResponseCacheOptions();
             }
             if (requestDelegate == null)
             {
@@ -70,16 +70,16 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 .Configure(app =>
                 {
                     configureDelegate(app);
-                    app.UseResponseCaching(options);
+                    app.UseResponseCache(options);
                     app.Run(requestDelegate);
                 });
         }
 
-        internal static ResponseCachingMiddleware CreateTestMiddleware(
-            IResponseCache responseCache = null,
-            ResponseCachingOptions options = null,
-            ICacheKeyProvider cacheKeyProvider = null,
-            ICacheabilityValidator cacheabilityValidator = null)
+        internal static ResponseCacheMiddleware CreateTestMiddleware(
+            IResponseCacheStore responseCache = null,
+            ResponseCacheOptions options = null,
+            IResponseCacheKeyProvider cacheKeyProvider = null,
+            IResponseCachePolicyProvider cacheabilityValidator = null)
         {
             if (responseCache == null)
             {
@@ -87,18 +87,18 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             }
             if (options == null)
             {
-                options = new ResponseCachingOptions();
+                options = new ResponseCacheOptions();
             }
             if (cacheKeyProvider == null)
             {
-                cacheKeyProvider = new CacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
+                cacheKeyProvider = new ResponseCacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
             }
             if (cacheabilityValidator == null)
             {
                 cacheabilityValidator = new TestCacheabilityValidator();
             }
 
-            return new ResponseCachingMiddleware(
+            return new ResponseCacheMiddleware(
                 httpContext => TaskCache.CompletedTask,
                 responseCache,
                 Options.Create(options),
@@ -106,9 +106,9 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 cacheKeyProvider);
         }
 
-        internal static ResponseCachingContext CreateTestContext()
+        internal static ResponseCacheContext CreateTestContext()
         {
-            return new ResponseCachingContext(new DefaultHttpContext());
+            return new ResponseCacheContext(new DefaultHttpContext());
         }
     }
 
@@ -120,58 +120,49 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
     }
 
-    internal class TestCacheabilityValidator : ICacheabilityValidator
+    internal class TestCacheabilityValidator : IResponseCachePolicyProvider
     {
-        public bool IsCachedEntryFresh(ResponseCachingContext context) => true;
+        public bool IsCachedEntryFresh(ResponseCacheContext context) => true;
 
-        public bool IsRequestCacheable(ResponseCachingContext context) => true;
+        public bool IsRequestCacheable(ResponseCacheContext context) => true;
 
-        public bool IsResponseCacheable(ResponseCachingContext context) => true;
+        public bool IsResponseCacheable(ResponseCacheContext context) => true;
     }
 
-    internal class TestKeyProvider : ICacheKeyProvider
+    internal class TestKeyProvider : IResponseCacheKeyProvider
     {
-        private readonly StringValues _baseKey;
+        private readonly string _baseKey;
         private readonly StringValues _varyKey;
 
-        public TestKeyProvider(StringValues? lookupBaseKey = null, StringValues? lookupVaryKey = null)
+        public TestKeyProvider(string lookupBaseKey = null, StringValues? lookupVaryKey = null)
         {
-            if (lookupBaseKey.HasValue)
-            {
-                _baseKey = lookupBaseKey.Value;
-            }
+            _baseKey = lookupBaseKey;
             if (lookupVaryKey.HasValue)
             {
                 _varyKey = lookupVaryKey.Value;
             }
         }
 
-        public IEnumerable<string> CreateLookupBaseKeys(ResponseCachingContext context) => _baseKey;
-
-
-        public IEnumerable<string> CreateLookupVaryKeys(ResponseCachingContext context)
+        public IEnumerable<string> CreateLookupVaryByKeys(ResponseCacheContext context)
         {
-            foreach (var baseKey in _baseKey)
+            foreach (var varyKey in _varyKey)
             {
-                foreach (var varyKey in _varyKey)
-                {
-                    yield return baseKey + varyKey;
-                }
+                yield return _baseKey + varyKey;
             }
         }
 
-        public string CreateStorageBaseKey(ResponseCachingContext context)
+        public string CreateBaseKey(ResponseCacheContext context)
         {
-            throw new NotImplementedException();
+            return _baseKey;
         }
 
-        public string CreateStorageVaryKey(ResponseCachingContext context)
+        public string CreateStorageVaryByKey(ResponseCacheContext context)
         {
             throw new NotImplementedException();
         }
     }
 
-    internal class TestResponseCache : IResponseCache
+    internal class TestResponseCache : IResponseCacheStore
     {
         private readonly IDictionary<string, object> _storage = new Dictionary<string, object>();
         public int GetCount { get; private set; }

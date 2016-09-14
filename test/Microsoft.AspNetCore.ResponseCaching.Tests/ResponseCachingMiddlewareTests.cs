@@ -35,22 +35,22 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         public async Task TryServeFromCacheAsync_CachedResponseNotFound_Fails()
         {
             var cache = new TestResponseCache();
-            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider(new[] { "BaseKey", "BaseKey2" }));
+            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider("BaseKey"));
             var context = TestUtils.CreateTestContext();
 
             Assert.False(await middleware.TryServeFromCacheAsync(context));
-            Assert.Equal(2, cache.GetCount);
+            Assert.Equal(1, cache.GetCount);
         }
 
         [Fact]
         public async Task TryServeFromCacheAsync_CachedResponseFound_Succeeds()
         {
             var cache = new TestResponseCache();
-            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider(new[] { "BaseKey", "BaseKey2" }));
+            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider("BaseKey"));
             var context = TestUtils.CreateTestContext();
 
             cache.Set(
-                "BaseKey2",
+                "BaseKey",
                 new CachedResponse()
                 {
                     Body = new byte[0]
@@ -58,38 +58,38 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 TimeSpan.Zero);
 
             Assert.True(await middleware.TryServeFromCacheAsync(context));
-            Assert.Equal(2, cache.GetCount);
+            Assert.Equal(1, cache.GetCount);
         }
 
         [Fact]
         public async Task TryServeFromCacheAsync_VaryRuleFound_CachedResponseNotFound_Fails()
         {
             var cache = new TestResponseCache();
-            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider(new[] { "BaseKey", "BaseKey2" }));
+            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider("BaseKey"));
             var context = TestUtils.CreateTestContext();
 
             cache.Set(
-                "BaseKey2",
+                "BaseKey",
                 new CachedVaryRules(),
                 TimeSpan.Zero);
 
             Assert.False(await middleware.TryServeFromCacheAsync(context));
-            Assert.Equal(2, cache.GetCount);
+            Assert.Equal(1, cache.GetCount);
         }
 
         [Fact]
         public async Task TryServeFromCacheAsync_VaryRuleFound_CachedResponseFound_Succeeds()
         {
             var cache = new TestResponseCache();
-            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider(new[] { "BaseKey", "BaseKey2" }, new[] { "VaryKey", "VaryKey2" }));
+            var middleware = TestUtils.CreateTestMiddleware(responseCache: cache, cacheKeyProvider: new TestKeyProvider("BaseKey", new[] { "VaryKey", "VaryKey2" }));
             var context = TestUtils.CreateTestContext();
 
             cache.Set(
-                "BaseKey2",
+                "BaseKey",
                 new CachedVaryRules(),
                 TimeSpan.Zero);
             cache.Set(
-                "BaseKey2VaryKey2",
+                "BaseKeyVaryKey2",
                 new CachedResponse()
                 {
                     Body = new byte[0]
@@ -97,7 +97,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 TimeSpan.Zero);
 
             Assert.True(await middleware.TryServeFromCacheAsync(context));
-            Assert.Equal(6, cache.GetCount);
+            Assert.Equal(3, cache.GetCount);
         }
 
         [Fact]
@@ -106,7 +106,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             var context = TestUtils.CreateTestContext();
             context.CachedResponseHeaders = new ResponseHeaders(new HeaderDictionary());
 
-            Assert.False(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.False(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -120,15 +120,15 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             // Verify modifications in the past succeeds
             context.CachedResponseHeaders.Date = utcNow - TimeSpan.FromSeconds(10);
-            Assert.True(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.True(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
 
             // Verify modifications at present succeeds
             context.CachedResponseHeaders.Date = utcNow;
-            Assert.True(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.True(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
 
             // Verify modifications in the future fails
             context.CachedResponseHeaders.Date = utcNow + TimeSpan.FromSeconds(10);
-            Assert.False(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.False(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -143,17 +143,17 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             // Verify modifications in the past succeeds
             context.CachedResponseHeaders.Date = utcNow + TimeSpan.FromSeconds(10);
             context.CachedResponseHeaders.LastModified = utcNow - TimeSpan.FromSeconds(10);
-            Assert.True(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.True(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
 
             // Verify modifications at present
             context.CachedResponseHeaders.Date = utcNow + TimeSpan.FromSeconds(10);
             context.CachedResponseHeaders.LastModified = utcNow;
-            Assert.True(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.True(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
 
             // Verify modifications in the future fails
             context.CachedResponseHeaders.Date = utcNow - TimeSpan.FromSeconds(10);
             context.CachedResponseHeaders.LastModified = utcNow + TimeSpan.FromSeconds(10);
-            Assert.False(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.False(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -168,7 +168,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.CachedResponseHeaders.LastModified = utcNow + TimeSpan.FromSeconds(10);
 
             context.TypedRequestHeaders.IfNoneMatch = new List<EntityTagHeaderValue>(new[] { EntityTagHeaderValue.Any });
-            Assert.True(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.True(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -183,7 +183,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.CachedResponseHeaders.LastModified = utcNow - TimeSpan.FromSeconds(10);
 
             context.TypedRequestHeaders.IfNoneMatch = new List<EntityTagHeaderValue>(new[] { new EntityTagHeaderValue("\"E1\"") });
-            Assert.False(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.False(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             context.TypedRequestHeaders.IfNoneMatch = new List<EntityTagHeaderValue>(new[] { new EntityTagHeaderValue("\"E1\"") });
 
-            Assert.False(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.False(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -208,7 +208,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             context.TypedRequestHeaders.IfNoneMatch = new List<EntityTagHeaderValue>(new[] { new EntityTagHeaderValue("\"E1\"") });
 
-            Assert.True(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.True(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
@@ -222,27 +222,27 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             context.TypedRequestHeaders.IfNoneMatch = new List<EntityTagHeaderValue>(new[] { new EntityTagHeaderValue("\"E1\"") });
 
-            Assert.False(ResponseCachingMiddleware.ConditionalRequestSatisfied(context));
+            Assert.False(ResponseCacheMiddleware.ConditionalRequestSatisfied(context));
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_DoNotUpdateShouldCacheResponse_IfResponseIsNotCacheable()
+        public void FinalizeCacheHeaders_DoNotUpdateShouldCacheResponse_IfResponseIsNotCacheable()
         {
-            var middleware = TestUtils.CreateTestMiddleware(cacheabilityValidator: new CacheabilityValidator());
+            var middleware = TestUtils.CreateTestMiddleware(cacheabilityValidator: new ResponseCachePolicyProvider());
             var context = TestUtils.CreateTestContext();
 
             Assert.False(context.ShouldCacheResponse);
 
             middleware.ShimResponseStream(context);
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.False(context.ShouldCacheResponse);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_UpdateShouldCacheResponse_IfResponseIsCacheable()
+        public void FinalizeCacheHeaders_UpdateShouldCacheResponse_IfResponseIsCacheable()
         {
-            var middleware = TestUtils.CreateTestMiddleware(cacheabilityValidator: new CacheabilityValidator());
+            var middleware = TestUtils.CreateTestMiddleware(cacheabilityValidator: new ResponseCachePolicyProvider());
             var context = TestUtils.CreateTestContext();
             context.TypedResponseHeaders.CacheControl = new CacheControlHeaderValue()
             {
@@ -251,24 +251,24 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             Assert.False(context.ShouldCacheResponse);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.True(context.ShouldCacheResponse);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_DefaultResponseValidity_Is10Seconds()
+        public void FinalizeCacheHeaders_DefaultResponseValidity_Is10Seconds()
         {
             var middleware = TestUtils.CreateTestMiddleware();
             var context = TestUtils.CreateTestContext();
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(TimeSpan.FromSeconds(10), context.CachedResponseValidFor);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_ResponseValidity_UseExpiryIfAvailable()
+        public void FinalizeCacheHeaders_ResponseValidity_UseExpiryIfAvailable()
         {
             var utcNow = DateTimeOffset.MinValue;
             var middleware = TestUtils.CreateTestMiddleware();
@@ -277,13 +277,13 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.ResponseTime = utcNow;
             context.TypedResponseHeaders.Expires = utcNow + TimeSpan.FromSeconds(11);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(TimeSpan.FromSeconds(11), context.CachedResponseValidFor);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_ResponseValidity_UseMaxAgeIfAvailable()
+        public void FinalizeCacheHeaders_ResponseValidity_UseMaxAgeIfAvailable()
         {
             var middleware = TestUtils.CreateTestMiddleware();
             var context = TestUtils.CreateTestContext();
@@ -295,13 +295,13 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.ResponseTime = DateTimeOffset.UtcNow;
             context.TypedResponseHeaders.Expires = context.ResponseTime + TimeSpan.FromSeconds(11);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(TimeSpan.FromSeconds(12), context.CachedResponseValidFor);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_ResponseValidity_UseSharedMaxAgeIfAvailable()
+        public void FinalizeCacheHeaders_ResponseValidity_UseSharedMaxAgeIfAvailable()
         {
             var middleware = TestUtils.CreateTestMiddleware();
             var context = TestUtils.CreateTestContext();
@@ -314,21 +314,21 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.ResponseTime = DateTimeOffset.UtcNow;
             context.TypedResponseHeaders.Expires = context.ResponseTime + TimeSpan.FromSeconds(11);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(TimeSpan.FromSeconds(13), context.CachedResponseValidFor);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_UpdateCachedVaryRules_IfNotEquivalentToPrevious()
+        public void FinalizeCacheHeaders_UpdateCachedVaryRules_IfNotEquivalentToPrevious()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
             var context = TestUtils.CreateTestContext();
 
             context.HttpContext.Response.Headers[HeaderNames.Vary] = new StringValues(new[] { "headerA", "HEADERB", "HEADERc" });
-            context.HttpContext.AddResponseCachingFeature();
-            context.HttpContext.GetResponseCachingFeature().VaryParams = new StringValues(new[] { "paramB", "PARAMAA" });
+            context.HttpContext.AddResponseCacheFeature();
+            context.HttpContext.GetResponseCacheFeature().VaryParams = new StringValues(new[] { "paramB", "PARAMAA" });
             var cachedVaryRules = new CachedVaryRules()
             {
                 Headers = new StringValues(new[] { "HeaderA", "HeaderB" }),
@@ -336,22 +336,22 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedVaryRules = cachedVaryRules;
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(1, cache.SetCount);
             Assert.NotSame(cachedVaryRules, context.CachedVaryRules);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_DoNotUpdateCachedVaryRules_IfEquivalentToPrevious()
+        public void FinalizeCacheHeaders_DoNotUpdateCachedVaryRules_IfEquivalentToPrevious()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
             var context = TestUtils.CreateTestContext();
 
             context.HttpContext.Response.Headers[HeaderNames.Vary] = new StringValues(new[] { "headerA", "HEADERB" });
-            context.HttpContext.AddResponseCachingFeature();
-            context.HttpContext.GetResponseCachingFeature().VaryParams = new StringValues(new[] { "paramB", "PARAMA" });
+            context.HttpContext.AddResponseCacheFeature();
+            context.HttpContext.GetResponseCacheFeature().VaryParams = new StringValues(new[] { "paramB", "PARAMA" });
             var cachedVaryRules = new CachedVaryRules()
             {
                 VaryKeyPrefix = FastGuid.NewGuid().IdString,
@@ -360,14 +360,14 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedVaryRules = cachedVaryRules;
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(0, cache.SetCount);
             Assert.Same(cachedVaryRules, context.CachedVaryRules);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_DoNotAddDate_IfSpecified()
+        public void FinalizeCacheHeaders_DoNotAddDate_IfSpecified()
         {
             var utcNow = DateTimeOffset.MinValue;
             var middleware = TestUtils.CreateTestMiddleware();
@@ -376,13 +376,13 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             Assert.Null(context.TypedResponseHeaders.Date);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(utcNow, context.TypedResponseHeaders.Date);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_AddsDate_IfNoneSpecified()
+        public void FinalizeCacheHeaders_AddsDate_IfNoneSpecified()
         {
             var utcNow = DateTimeOffset.MinValue;
             var middleware = TestUtils.CreateTestMiddleware();
@@ -392,26 +392,26 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 
             Assert.Equal(utcNow, context.TypedResponseHeaders.Date);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.Equal(utcNow, context.TypedResponseHeaders.Date);
         }
 
         [Fact]
-        public void FinalizeCachingHeaders_StoresCachedResponse_InState()
+        public void FinalizeCacheHeaders_StoresCachedResponse_InState()
         {
             var middleware = TestUtils.CreateTestMiddleware();
             var context = TestUtils.CreateTestContext();
 
             Assert.Null(context.CachedResponse);
 
-            middleware.FinalizeCachingHeaders(context);
+            middleware.FinalizeCacheHeaders(context);
 
             Assert.NotNull(context.CachedResponse);
         }
 
         [Fact]
-        public async Task FinalizeCachingBody_StoreResponseBodySeparately_IfLargerThanLimit()
+        public async Task FinalizeCacheBody_StoreResponseBodySeparately_IfLargerThanLimit()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
@@ -425,16 +425,16 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             {
                 BodyKeyPrefix = FastGuid.NewGuid().IdString
             };
-            context.StorageBaseKey = "BaseKey";
+            context.BaseKey = "BaseKey";
             context.CachedResponseValidFor = TimeSpan.FromSeconds(10);
 
-            middleware.FinalizeCachingBody(context);
+            middleware.FinalizeCacheBody(context);
 
             Assert.Equal(2, cache.SetCount);
         }
 
         [Fact]
-        public async Task FinalizeCachingBody_StoreResponseBodyInCachedResponse_IfSmallerThanLimit()
+        public async Task FinalizeCacheBody_StoreResponseBodyInCachedResponse_IfSmallerThanLimit()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
@@ -448,19 +448,19 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             {
                 BodyKeyPrefix = FastGuid.NewGuid().IdString
             };
-            context.StorageBaseKey = "BaseKey";
+            context.BaseKey = "BaseKey";
             context.CachedResponseValidFor = TimeSpan.FromSeconds(10);
 
-            middleware.FinalizeCachingBody(context);
+            middleware.FinalizeCacheBody(context);
 
             Assert.Equal(1, cache.SetCount);
         }
 
         [Fact]
-        public async Task FinalizeCachingBody_StoreResponseBodySeparately_LimitIsConfigurable()
+        public async Task FinalizeCacheBody_StoreResponseBodySeparately_LimitIsConfigurable()
         {
             var cache = new TestResponseCache();
-            var middleware = TestUtils.CreateTestMiddleware(cache, new ResponseCachingOptions()
+            var middleware = TestUtils.CreateTestMiddleware(cache, new ResponseCacheOptions()
             {
                 MinimumSplitBodySize = 2048
             });
@@ -474,16 +474,16 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             {
                 BodyKeyPrefix = FastGuid.NewGuid().IdString
             };
-            context.StorageBaseKey = "BaseKey";
+            context.BaseKey = "BaseKey";
             context.CachedResponseValidFor = TimeSpan.FromSeconds(10);
 
-            middleware.FinalizeCachingBody(context);
+            middleware.FinalizeCacheBody(context);
 
             Assert.Equal(1, cache.SetCount);
         }
 
         [Fact]
-        public async Task FinalizeCachingBody_Cache_IfContentLengthMatches()
+        public async Task FinalizeCacheBody_Cache_IfContentLengthMatches()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
@@ -498,16 +498,16 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             {
                 BodyKeyPrefix = FastGuid.NewGuid().IdString
             };
-            context.StorageBaseKey = "BaseKey";
+            context.BaseKey = "BaseKey";
             context.CachedResponseValidFor = TimeSpan.FromSeconds(10);
 
-            middleware.FinalizeCachingBody(context);
+            middleware.FinalizeCacheBody(context);
 
             Assert.Equal(1, cache.SetCount);
         }
 
         [Fact]
-        public async Task FinalizeCachingBody_DoNotCache_IfContentLengthMismatches()
+        public async Task FinalizeCacheBody_DoNotCache_IfContentLengthMismatches()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
@@ -522,16 +522,16 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             {
                 BodyKeyPrefix = FastGuid.NewGuid().IdString
             };
-            context.StorageBaseKey = "BaseKey";
+            context.BaseKey = "BaseKey";
             context.CachedResponseValidFor = TimeSpan.FromSeconds(10);
 
-            middleware.FinalizeCachingBody(context);
+            middleware.FinalizeCacheBody(context);
 
             Assert.Equal(0, cache.SetCount);
         }
 
         [Fact]
-        public async Task FinalizeCachingBody_Cache_IfContentLengthAbsent()
+        public async Task FinalizeCacheBody_Cache_IfContentLengthAbsent()
         {
             var cache = new TestResponseCache();
             var middleware = TestUtils.CreateTestMiddleware(cache);
@@ -545,10 +545,10 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             {
                 BodyKeyPrefix = FastGuid.NewGuid().IdString
             };
-            context.StorageBaseKey = "BaseKey";
+            context.BaseKey = "BaseKey";
             context.CachedResponseValidFor = TimeSpan.FromSeconds(10);
 
-            middleware.FinalizeCachingBody(context);
+            middleware.FinalizeCacheBody(context);
 
             Assert.Equal(1, cache.SetCount);
         }
@@ -559,7 +559,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             var uppercaseStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
             var lowercaseStrings = new StringValues(new[] { "stringA", "stringB" });
 
-            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedStringValues(lowercaseStrings);
+            var normalizedStrings = ResponseCacheMiddleware.GetNormalizedStringValues(lowercaseStrings);
 
             Assert.Equal(uppercaseStrings, normalizedStrings);
         }
@@ -570,9 +570,10 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             var orderedStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
             var reverseOrderStrings = new StringValues(new[] { "STRINGB", "STRINGA" });
 
-            var normalizedStrings = ResponseCachingMiddleware.GetNormalizedStringValues(reverseOrderStrings);
+            var normalizedStrings = ResponseCacheMiddleware.GetNormalizedStringValues(reverseOrderStrings);
 
             Assert.Equal(orderedStrings, normalizedStrings);
         }
+
     }
 }

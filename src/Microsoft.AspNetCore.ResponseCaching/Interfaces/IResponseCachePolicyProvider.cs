@@ -3,27 +3,27 @@
 
 namespace Microsoft.AspNetCore.ResponseCaching
 {
-    public interface ICacheabilityValidator
+    public interface IResponseCachePolicyProvider
     {
         /// <summary>
         /// Determine the cacheability of an HTTP request.
         /// </summary>
-        /// <param name="context">The <see cref="ResponseCachingContext"/>.</param>
+        /// <param name="context">The <see cref="ResponseCacheContext"/>.</param>
         /// <returns><c>true</c> if the request is cacheable; otherwise <c>false</c>.</returns>
-        bool IsRequestCacheable(ResponseCachingContext context);
+        bool IsRequestCacheable(ResponseCacheContext context);
 
         /// <summary>
         /// Determine the cacheability of an HTTP response.
         /// </summary>
-        /// <param name="context">The <see cref="ResponseCachingContext"/>.</param>
+        /// <param name="context">The <see cref="ResponseCacheContext"/>.</param>
         /// <returns><c>true</c> if the response is cacheable; otherwise <c>false</c>.</returns>
-        bool IsResponseCacheable(ResponseCachingContext context);
+        bool IsResponseCacheable(ResponseCacheContext context);
 
         /// <summary>
         /// Determine the freshness of the cached entry.
         /// </summary>
-        /// <param name="context">The <see cref="ResponseCachingContext"/>.</param>
+        /// <param name="context">The <see cref="ResponseCacheContext"/>.</param>
         /// <returns><c>true</c> if the cached entry is fresh; otherwise <c>false</c>.</returns>
-        bool IsCachedEntryFresh(ResponseCachingContext context);
+        bool IsCachedEntryFresh(ResponseCacheContext context);
     }
 }

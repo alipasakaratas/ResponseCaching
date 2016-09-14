@@ -16,23 +16,23 @@ using Microsoft.Net.Http.Headers;
 
 namespace Microsoft.AspNetCore.ResponseCaching
 {
-    public class ResponseCachingMiddleware
+    public class ResponseCacheMiddleware
     {
         private static readonly TimeSpan DefaultExpirationTimeSpan = TimeSpan.FromSeconds(10);
 
         private readonly RequestDelegate _next;
-        private readonly IResponseCache _cache;
-        private readonly ResponseCachingOptions _options;
-        private readonly ICacheabilityValidator _cacheabilityValidator;
-        private readonly ICacheKeyProvider _cacheKeyProvider;
+        private readonly IResponseCacheStore _cache;
+        private readonly ResponseCacheOptions _options;
+        private readonly IResponseCachePolicyProvider _cacheabilityValidator;
+        private readonly IResponseCacheKeyProvider _cacheKeyProvider;
         private readonly Func<object, Task> _onStartingCallback;
 
-        public ResponseCachingMiddleware(
+        public ResponseCacheMiddleware(
             RequestDelegate next,
-            IResponseCache cache,
-            IOptions<ResponseCachingOptions> options,
-            ICacheabilityValidator cacheabilityValidator,
-            ICacheKeyProvider cacheKeyProvider)
+            IResponseCacheStore cache,
+            IOptions<ResponseCacheOptions> options,
+            IResponseCachePolicyProvider cacheabilityValidator,
+            IResponseCacheKeyProvider cacheKeyProvider)
         {
             if (next == null)
             {
@@ -62,14 +62,14 @@ namespace Microsoft.AspNetCore.ResponseCaching
             _cacheKeyProvider = cacheKeyProvider;
             _onStartingCallback = state =>
             {
-                OnResponseStarting((ResponseCachingContext)state);
+                OnResponseStarting((ResponseCacheContext)state);
                 return TaskCache.CompletedTask;
             };
         }
 
         public async Task Invoke(HttpContext httpContext)
         {
-            var context = new ResponseCachingContext(httpContext);
+            var context = new ResponseCacheContext(httpContext);
 
             // Should we attempt any caching logic?
             if (_cacheabilityValidator.IsRequestCacheable(context))
@@ -94,7 +94,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
                     OnResponseStarting(context);
 
                     // Finalize the cache entry
-                    FinalizeCachingBody(context);
+                    FinalizeCacheBody(context);
                 }
                 finally
                 {
@@ -108,7 +108,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
             }
         }
 
-        internal async Task<bool> TryServeCachedResponseAsync(ResponseCachingContext context, CachedResponse cachedResponse)
+        internal async Task<bool> TryServeCachedResponseAsync(ResponseCacheContext context, CachedResponse cachedResponse)
         {
             context.CachedResponse = cachedResponse;
             context.CachedResponseHeaders = new ResponseHeaders(cachedResponse.Headers);
@@ -166,32 +166,30 @@ namespace Microsoft.AspNetCore.ResponseCaching
             return false;
         }
 
-        internal async Task<bool> TryServeFromCacheAsync(ResponseCachingContext context)
+        internal async Task<bool> TryServeFromCacheAsync(ResponseCacheContext context)
         {
-            foreach (var baseKey in _cacheKeyProvider.CreateLookupBaseKeys(context))
+            context.BaseKey = _cacheKeyProvider.CreateBaseKey(context);
+            var cacheEntry = _cache.Get(context.BaseKey);
+
+            if (cacheEntry is CachedVaryRules)
             {
-                var cacheEntry = _cache.Get(baseKey);
+                // Request contains vary rules, recompute key(s) and try again
+                context.CachedVaryRules = (CachedVaryRules)cacheEntry;
 
-                if (cacheEntry is CachedVaryRules)
+                foreach (var varyKey in _cacheKeyProvider.CreateLookupVaryByKeys(context))
                 {
-                    // Request contains vary rules, recompute key(s) and try again
-                    context.CachedVaryRules = (CachedVaryRules)cacheEntry;
+                    cacheEntry = _cache.Get(varyKey);
 
-                    foreach (var varyKey in _cacheKeyProvider.CreateLookupVaryKeys(context))
+                    if (cacheEntry is CachedResponse && await TryServeCachedResponseAsync(context, (CachedResponse)cacheEntry))
                     {
-                        cacheEntry = _cache.Get(varyKey);
-
-                        if (cacheEntry is CachedResponse && await TryServeCachedResponseAsync(context, (CachedResponse)cacheEntry))
-                        {
-                            return true;
-                        }
+                        return true;
                     }
                 }
+            }
 
-                if (cacheEntry is CachedResponse && await TryServeCachedResponseAsync(context, (CachedResponse)cacheEntry))
-                {
-                    return true;
-                }
+            if (cacheEntry is CachedResponse && await TryServeCachedResponseAsync(context, (CachedResponse)cacheEntry))
+            {
+                return true;
             }
 
 
@@ -204,17 +202,17 @@ namespace Microsoft.AspNetCore.ResponseCaching
             return false;
         }
 
-        internal void FinalizeCachingHeaders(ResponseCachingContext context)
+        internal void FinalizeCacheHeaders(ResponseCacheContext context)
         {
             if (_cacheabilityValidator.IsResponseCacheable(context))
             {
                 context.ShouldCacheResponse = true;
-                context.StorageBaseKey = _cacheKeyProvider.CreateStorageBaseKey(context);
+                context.BaseKey = _cacheKeyProvider.CreateBaseKey(context);
 
                 // Create the cache entry now
                 var response = context.HttpContext.Response;
                 var varyHeaderValue = response.Headers[HeaderNames.Vary];
-                var varyParamsValue = context.HttpContext.GetResponseCachingFeature()?.VaryParams ?? StringValues.Empty;
+                var varyParamsValue = context.HttpContext.GetResponseCacheFeature()?.VaryParams ?? StringValues.Empty;
                 context.CachedResponseValidFor = context.ResponseCacheControlHeaderValue.SharedMaxAge ??
                     context.ResponseCacheControlHeaderValue.MaxAge ??
                     (context.TypedResponseHeaders.Expires - context.ResponseTime) ??
@@ -239,10 +237,10 @@ namespace Microsoft.AspNetCore.ResponseCaching
                             Params = normalizedVaryParamsValue
                         };
 
-                        _cache.Set(context.StorageBaseKey, context.CachedVaryRules, context.CachedResponseValidFor);
+                        _cache.Set(context.BaseKey, context.CachedVaryRules, context.CachedResponseValidFor);
                     }
 
-                    context.StorageVaryKey = _cacheKeyProvider.CreateStorageVaryKey(context);
+                    context.StorageVaryKey = _cacheKeyProvider.CreateStorageVaryByKey(context);
                 }
 
                 // Ensure date header is set
@@ -273,7 +271,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
             }
         }
 
-        internal void FinalizeCachingBody(ResponseCachingContext context)
+        internal void FinalizeCacheBody(ResponseCacheContext context)
         {
             if (context.ShouldCacheResponse &&
                 context.ResponseCacheStream.BufferingEnabled &&
@@ -283,7 +281,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 if (context.ResponseCacheStream.BufferedStream.Length >= _options.MinimumSplitBodySize)
                 {
                     // Store response and response body separately
-                    _cache.Set(context.StorageVaryKey ?? context.StorageBaseKey, context.CachedResponse, context.CachedResponseValidFor);
+                    _cache.Set(context.StorageVaryKey ?? context.BaseKey, context.CachedResponse, context.CachedResponseValidFor);
 
                     var cachedResponseBody = new CachedResponseBody()
                     {
@@ -296,23 +294,23 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 {
                     // Store response and response body together
                     context.CachedResponse.Body = context.ResponseCacheStream.BufferedStream.ToArray();
-                    _cache.Set(context.StorageVaryKey ?? context.StorageBaseKey, context.CachedResponse, context.CachedResponseValidFor);
+                    _cache.Set(context.StorageVaryKey ?? context.BaseKey, context.CachedResponse, context.CachedResponseValidFor);
                 }
             }
         }
 
-        internal void OnResponseStarting(ResponseCachingContext context)
+        internal void OnResponseStarting(ResponseCacheContext context)
         {
             if (!context.ResponseStarted)
             {
                 context.ResponseStarted = true;
                 context.ResponseTime = _options.SystemClock.UtcNow;
 
-                FinalizeCachingHeaders(context);
+                FinalizeCacheHeaders(context);
             }
         }
 
-        internal void ShimResponseStream(ResponseCachingContext context)
+        internal void ShimResponseStream(ResponseCacheContext context)
         {
             // TODO: Consider caching large responses on disk and serving them from there.
 
@@ -329,10 +327,10 @@ namespace Microsoft.AspNetCore.ResponseCaching
             }
 
             // TODO: Move this temporary interface with endpoint to HttpAbstractions
-            context.HttpContext.AddResponseCachingFeature();
+            context.HttpContext.AddResponseCacheFeature();
         }
 
-        internal static void UnshimResponseStream(ResponseCachingContext context)
+        internal static void UnshimResponseStream(ResponseCacheContext context)
         {
             // Unshim response stream
             context.HttpContext.Response.Body = context.OriginalResponseStream;
@@ -341,10 +339,10 @@ namespace Microsoft.AspNetCore.ResponseCaching
             context.HttpContext.Features.Set(context.OriginalSendFileFeature);
 
             // TODO: Move this temporary interface with endpoint to HttpAbstractions
-            context.HttpContext.RemoveResponseCachingFeature();
+            context.HttpContext.RemoveResponseCacheFeature();
         }
 
-        internal static bool ConditionalRequestSatisfied(ResponseCachingContext context)
+        internal static bool ConditionalRequestSatisfied(ResponseCacheContext context)
         {
             var cachedResponseHeaders = context.CachedResponseHeaders;
             var ifNoneMatchHeader = context.TypedRequestHeaders.IfNoneMatch;

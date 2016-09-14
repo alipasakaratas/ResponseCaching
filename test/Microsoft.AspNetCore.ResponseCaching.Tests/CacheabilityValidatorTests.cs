@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             var context = TestUtils.CreateTestContext();
             context.HttpContext.Request.Method = method;
 
-            Assert.True(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Theory]
@@ -36,7 +36,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             var context = TestUtils.CreateTestContext();
             context.HttpContext.Request.Method = method;
 
-            Assert.False(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Fact]
@@ -46,7 +46,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.HttpContext.Request.Method = "GET";
             context.HttpContext.Request.Headers[HeaderNames.Authorization] = "Basic plaintextUN:plaintextPW";
 
-            Assert.False(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Fact]
@@ -59,7 +59,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 NoCache = true
             };
 
-            Assert.False(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 NoStore = true
             };
 
-            Assert.True(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.HttpContext.Request.Method = "GET";
             context.HttpContext.Request.Headers[HeaderNames.Pragma] = "no-cache";
 
-            Assert.False(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.HttpContext.Request.Headers[HeaderNames.Pragma] = "no-cache";
             context.HttpContext.Request.Headers[HeaderNames.CacheControl] = "max-age=10";
 
-            Assert.True(new CacheabilityValidator().IsRequestCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsRequestCacheable(context));
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         {
             var context = TestUtils.CreateTestContext();
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -113,7 +113,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Public = true
             };
 
-            Assert.True(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 NoCache = true
             };
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -142,7 +142,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Public = true
             };
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 NoStore = true
             };
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -168,7 +168,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.HttpContext.Response.Headers[HeaderNames.SetCookie] = "cookieName=cookieValue";
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -181,7 +181,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.HttpContext.Response.Headers[HeaderNames.Vary] = "*";
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Private = true
             };
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Theory]
@@ -208,7 +208,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Public = true
             };
 
-            Assert.True(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Theory]
@@ -269,7 +269,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Public = true
             };
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -286,7 +286,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.TypedResponseHeaders.Date = utcNow;
             context.ResponseTime = DateTimeOffset.MaxValue;
 
-            Assert.True(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -304,7 +304,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.TypedResponseHeaders.Date = utcNow;
             context.ResponseTime = DateTimeOffset.MaxValue;
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -322,7 +322,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.TypedResponseHeaders.Date = utcNow;
             context.ResponseTime = utcNow + TimeSpan.FromSeconds(9);
 
-            Assert.True(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.TypedResponseHeaders.Date = utcNow;
             context.ResponseTime = utcNow + TimeSpan.FromSeconds(11);
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -358,7 +358,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.TypedResponseHeaders.Date = utcNow;
             context.ResponseTime = utcNow + TimeSpan.FromSeconds(11);
 
-            Assert.True(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.True(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -376,7 +376,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.TypedResponseHeaders.Date = utcNow;
             context.ResponseTime = utcNow + TimeSpan.FromSeconds(6);
 
-            Assert.False(new CacheabilityValidator().IsResponseCacheable(context));
+            Assert.False(new ResponseCachePolicyProvider().IsResponseCacheable(context));
         }
 
         [Fact]
@@ -387,7 +387,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.ResponseTime = DateTimeOffset.MaxValue;
             context.CachedResponseHeaders = new ResponseHeaders(new HeaderDictionary());
 
-            Assert.True(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.True(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -404,7 +404,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 }
             };
 
-            Assert.True(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.True(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -421,7 +421,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Expires = DateTimeOffset.UtcNow
             };
 
-            Assert.False(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.False(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -441,7 +441,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Expires = utcNow
             };
 
-            Assert.True(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.True(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -461,7 +461,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Expires = utcNow
             };
 
-            Assert.False(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.False(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -482,7 +482,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Expires = utcNow
             };
 
-            Assert.True(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.True(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -503,7 +503,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 Expires = utcNow
             };
 
-            Assert.False(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.False(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -524,7 +524,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedEntryAge = TimeSpan.FromSeconds(3);
 
-            Assert.False(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.False(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -544,7 +544,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedEntryAge = TimeSpan.FromSeconds(6);
 
-            Assert.False(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.False(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -566,7 +566,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedEntryAge = TimeSpan.FromSeconds(6);
 
-            Assert.True(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.True(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -589,7 +589,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedEntryAge = TimeSpan.FromSeconds(6);
 
-            Assert.False(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.False(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
 
         [Fact]
@@ -611,7 +611,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
             context.CachedEntryAge = TimeSpan.FromSeconds(3);
 
-            Assert.True(new CacheabilityValidator().IsCachedEntryFresh(context));
+            Assert.True(new ResponseCachePolicyProvider().IsCachedEntryFresh(context));
         }
     }
 }

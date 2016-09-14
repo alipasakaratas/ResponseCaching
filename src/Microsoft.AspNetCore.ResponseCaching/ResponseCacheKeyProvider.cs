@@ -12,15 +12,15 @@ using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.AspNetCore.ResponseCaching
 {
-    public class CacheKeyProvider : ICacheKeyProvider
+    public class ResponseCacheKeyProvider : IResponseCacheKeyProvider
     {
         // Use the record separator for delimiting components of the cache key to avoid possible collisions
         private static readonly char KeyDelimiter = '\x1e';
 
         private readonly ObjectPool<StringBuilder> _builderPool;
-        private readonly ResponseCachingOptions _options;
+        private readonly ResponseCacheOptions _options;
 
-        public CacheKeyProvider(ObjectPoolProvider poolProvider, IOptions<ResponseCachingOptions> options)
+        public ResponseCacheKeyProvider(ObjectPoolProvider poolProvider, IOptions<ResponseCacheOptions> options)
         {
             if (poolProvider == null)
             {
@@ -35,18 +35,13 @@ namespace Microsoft.AspNetCore.ResponseCaching
             _options = options.Value;
         }
 
-        public virtual IEnumerable<string> CreateLookupBaseKeys(ResponseCachingContext context)
+        public virtual IEnumerable<string> CreateLookupVaryByKeys(ResponseCacheContext context)
         {
-            return new string[] { CreateStorageBaseKey(context) };
-        }
-
-        public virtual IEnumerable<string> CreateLookupVaryKeys(ResponseCachingContext context)
-        {
-            return new string[] { CreateStorageVaryKey(context) };
+            return new string[] { CreateStorageVaryByKey(context) };
         }
 
         // GET<delimiter>/PATH
-        public virtual string CreateStorageBaseKey(ResponseCachingContext context)
+        public virtual string CreateBaseKey(ResponseCacheContext context)
         {
             if (context == null)
             {
@@ -61,7 +56,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 builder
                     .Append(request.Method.ToUpperInvariant())
                     .Append(KeyDelimiter)
-                    .Append(_options.CaseSensitivePaths ? request.Path.Value : request.Path.Value.ToUpperInvariant());
+                    .Append(_options.UseCaseSensitivePaths ? request.Path.Value : request.Path.Value.ToUpperInvariant());
 
                 return builder.ToString();;
             }
@@ -72,7 +67,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
         }
 
         // BaseKey<delimiter>H<delimiter>HeaderName=HeaderValue<delimiter>Q<delimiter>QueryName=QueryValue
-        public virtual string CreateStorageVaryKey(ResponseCachingContext context)
+        public virtual string CreateStorageVaryByKey(ResponseCacheContext context)
         {
             if (context == null)
             {
@@ -82,7 +77,7 @@ namespace Microsoft.AspNetCore.ResponseCaching
             var varyRules = context.CachedVaryRules;
             if  (varyRules == null)
             {
-                throw new InvalidOperationException($"{nameof(CachedVaryRules)} must not be null on the {nameof(ResponseCachingContext)}");
+                throw new InvalidOperationException($"{nameof(CachedVaryRules)} must not be null on the {nameof(ResponseCacheContext)}");
             }
 
             if ((StringValues.IsNullOrEmpty(varyRules.Headers) && StringValues.IsNullOrEmpty(varyRules.Params)))

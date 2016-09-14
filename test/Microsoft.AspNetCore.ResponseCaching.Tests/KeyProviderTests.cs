@@ -25,35 +25,35 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             context.HttpContext.Request.PathBase = "/pathBase";
             context.HttpContext.Request.QueryString = new QueryString("?query.Key=a&query.Value=b");
 
-            Assert.Equal($"HEAD{KeyDelimiter}/PATH/SUBPATH", cacheKeyProvider.CreateStorageBaseKey(context));
+            Assert.Equal($"HEAD{KeyDelimiter}/PATH/SUBPATH", cacheKeyProvider.CreateBaseKey(context));
         }
 
         [Fact]
         public void DefaultKeyProvider_CreateStorageBaseKey_CaseInsensitivePath_NormalizesPath()
         {
-            var cacheKeyProvider = TestUtils.CreateTestKeyProvider(new ResponseCachingOptions()
+            var cacheKeyProvider = TestUtils.CreateTestKeyProvider(new ResponseCacheOptions()
             {
-                CaseSensitivePaths = false
+                UseCaseSensitivePaths = false
             });
             var context = TestUtils.CreateTestContext();
             context.HttpContext.Request.Method = "GET";
             context.HttpContext.Request.Path = "/Path";
 
-            Assert.Equal($"GET{KeyDelimiter}/PATH", cacheKeyProvider.CreateStorageBaseKey(context));
+            Assert.Equal($"GET{KeyDelimiter}/PATH", cacheKeyProvider.CreateBaseKey(context));
         }
 
         [Fact]
         public void DefaultKeyProvider_CreateStorageBaseKey_CaseSensitivePath_PreservesPathCase()
         {
-            var cacheKeyProvider = TestUtils.CreateTestKeyProvider(new ResponseCachingOptions()
+            var cacheKeyProvider = TestUtils.CreateTestKeyProvider(new ResponseCacheOptions()
             {
-                CaseSensitivePaths = true
+                UseCaseSensitivePaths = true
             });
             var context = TestUtils.CreateTestContext();
             context.HttpContext.Request.Method = "GET";
             context.HttpContext.Request.Path = "/Path";
 
-            Assert.Equal($"GET{KeyDelimiter}/Path", cacheKeyProvider.CreateStorageBaseKey(context));
+            Assert.Equal($"GET{KeyDelimiter}/Path", cacheKeyProvider.CreateBaseKey(context));
         }
 
         [Fact]
@@ -62,7 +62,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
 
-            Assert.Throws<InvalidOperationException>(() => cacheKeyProvider.CreateStorageVaryKey(context));
+            Assert.Throws<InvalidOperationException>(() => cacheKeyProvider.CreateStorageVaryByKey(context));
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
                 VaryKeyPrefix = FastGuid.NewGuid().IdString
             };
 
-            Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}", cacheKeyProvider.CreateStorageVaryKey(context));
+            Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}", cacheKeyProvider.CreateStorageVaryByKey(context));
         }
 
         [Fact]
@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
 
             Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}{KeyDelimiter}H{KeyDelimiter}HeaderA=ValueA{KeyDelimiter}HeaderC=",
-                cacheKeyProvider.CreateStorageVaryKey(context));
+                cacheKeyProvider.CreateStorageVaryByKey(context));
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
 
             Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}{KeyDelimiter}Q{KeyDelimiter}ParamA=ValueA{KeyDelimiter}ParamC=",
-                cacheKeyProvider.CreateStorageVaryKey(context));
+                cacheKeyProvider.CreateStorageVaryByKey(context));
         }
 
         [Fact]
@@ -123,7 +123,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
 
             Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}{KeyDelimiter}Q{KeyDelimiter}ParamA=ValueA{KeyDelimiter}ParamC=",
-                cacheKeyProvider.CreateStorageVaryKey(context));
+                cacheKeyProvider.CreateStorageVaryByKey(context));
         }
 
         [Fact]
@@ -141,7 +141,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             // To support case insensitivity, all param keys are converted to upper case.
             // Explicit params uses the casing specified in the setting.
             Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}{KeyDelimiter}Q{KeyDelimiter}PARAMA=ValueA{KeyDelimiter}PARAMB=ValueB",
-                cacheKeyProvider.CreateStorageVaryKey(context));
+                cacheKeyProvider.CreateStorageVaryByKey(context));
         }
 
         [Fact]
@@ -160,7 +160,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             };
 
             Assert.Equal($"{context.CachedVaryRules.VaryKeyPrefix}{KeyDelimiter}H{KeyDelimiter}HeaderA=ValueA{KeyDelimiter}HeaderC={KeyDelimiter}Q{KeyDelimiter}ParamA=ValueA{KeyDelimiter}ParamC=",
-                cacheKeyProvider.CreateStorageVaryKey(context));
+                cacheKeyProvider.CreateStorageVaryByKey(context));
         }
     }
 }

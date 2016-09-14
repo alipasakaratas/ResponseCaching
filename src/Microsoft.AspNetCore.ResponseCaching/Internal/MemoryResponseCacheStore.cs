@@ -6,7 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Microsoft.AspNetCore.ResponseCaching.Internal
 {
-    internal class MemoryResponseCache : IResponseCache
+    internal class MemoryResponseCache : IResponseCacheStore
     {
         private readonly IMemoryCache _cache;
 
