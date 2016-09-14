@@ -610,7 +610,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         [Fact]
         public void GetNormalizedHeaderStringValues_SplitHeadersWithCommas()
         {
-            var originalStrings = new StringValues(new[] { "stringB, Stringa" });
+            var originalStrings = new StringValues(new[] { "  stringB, Stringa  ,  " });
             var expectedStrings = new StringValues(new[] { "STRINGA", "STRINGB" });
 
             var normalizedStrings = ResponseCachingMiddleware.GetNormalizedHeaderStringValues(originalStrings);

@@ -379,18 +379,18 @@ namespace Microsoft.AspNetCore.ResponseCaching
         // Split by commas and normalize order and casing
         internal static StringValues GetNormalizedHeaderStringValues(StringValues stringValues)
         {
-            var commaFound = false;
+            var containsComma = false;
 
             foreach (var value in stringValues)
             {
-                if (value.Contains(","))
+                if (value.IndexOf(',') >= 0)
                 {
-                    commaFound = true;
+                    containsComma = true;
                     break;
                 }
             }
 
-            if (!commaFound)
+            if (!containsComma)
             {
                 return GetOrderCasingNormalizedStringValues(stringValues);
             }
@@ -399,9 +399,9 @@ namespace Microsoft.AspNetCore.ResponseCaching
                 var headers = new List<string>(stringValues.Count);
                 foreach (var value in stringValues)
                 {
-                    foreach (var header in value.Split(','))
+                    foreach (var header in value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries))
                     {
-                        headers.Add(header.Trim().ToUpperInvariant());
+                        headers.Add(header.ToUpperInvariant());
                     }
                 }
 
