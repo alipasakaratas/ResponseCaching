@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
 {
     internal class TestUtils
     {
-        internal static RequestDelegate DefaultRequestDelegate = async (context) =>
+        internal static RequestDelegate TestRequestDelegate = async (context) =>
         {
             var uniqueId = Guid.NewGuid().ToString();
             var headers = context.Response.GetTypedHeaders();
@@ -59,7 +59,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
             }
             if (requestDelegate == null)
             {
-                requestDelegate = DefaultRequestDelegate;
+                requestDelegate = TestRequestDelegate;
             }
 
             return new WebHostBuilder()
@@ -76,34 +76,34 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         internal static ResponseCacheMiddleware CreateTestMiddleware(
-            IResponseCacheStore responseCache = null,
+            IResponseCacheStore store = null,
             ResponseCacheOptions options = null,
-            IResponseCacheKeyProvider responseCacheKeyProvider = null,
-            IResponseCachePolicyProvider responseCachePolicyProvider = null)
+            IResponseCacheKeyProvider keyProvider = null,
+            IResponseCachePolicyProvider policyProvider = null)
         {
-            if (responseCache == null)
+            if (store == null)
             {
-                responseCache = new TestResponseCacheStore();
+                store = new TestResponseCacheStore();
             }
             if (options == null)
             {
                 options = new ResponseCacheOptions();
             }
-            if (responseCacheKeyProvider == null)
+            if (keyProvider == null)
             {
-                responseCacheKeyProvider = new ResponseCacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
+                keyProvider = new ResponseCacheKeyProvider(new DefaultObjectPoolProvider(), Options.Create(options));
             }
-            if (responseCachePolicyProvider == null)
+            if (policyProvider == null)
             {
-                responseCachePolicyProvider = new TestResponseCachePolicyProvider();
+                policyProvider = new TestResponseCachePolicyProvider();
             }
 
             return new ResponseCacheMiddleware(
                 httpContext => TaskCache.CompletedTask,
-                responseCache,
+                store,
                 Options.Create(options),
-                responseCachePolicyProvider,
-                responseCacheKeyProvider);
+                policyProvider,
+                keyProvider);
         }
 
         internal static ResponseCacheContext CreateTestContext()

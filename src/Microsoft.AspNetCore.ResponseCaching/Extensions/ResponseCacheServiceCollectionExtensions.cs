@@ -19,7 +19,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddMemoryCache();
             services.AddResponseCacheServices();
-            services.TryAdd(ServiceDescriptor.Singleton<IResponseCacheStore, MemoryResponseCache>());
+            services.TryAdd(ServiceDescriptor.Singleton<IResponseCacheStore, MemoryResponseCacheStore>());
 
             return services;
         }
@@ -33,7 +33,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddDistributedMemoryCache();
             services.AddResponseCacheServices();
-            services.TryAdd(ServiceDescriptor.Singleton<IResponseCacheStore, DistributedResponseCache>());
+            services.TryAdd(ServiceDescriptor.Singleton<IResponseCacheStore, DistributedResponseCacheStore>());
 
             return services;
         }

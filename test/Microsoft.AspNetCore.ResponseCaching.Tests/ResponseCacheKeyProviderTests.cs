@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         private static readonly char KeyDelimiter = '\x1e';
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageBaseKey_IncludesOnlyNormalizedMethodAndPath()
+        public void ResponseCacheKeyProvider_CreateStorageBaseKey_IncludesOnlyNormalizedMethodAndPath()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageBaseKey_CaseInsensitivePath_NormalizesPath()
+        public void ResponseCacheKeyProvider_CreateStorageBaseKey_CaseInsensitivePath_NormalizesPath()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider(new ResponseCacheOptions()
             {
@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageBaseKey_CaseSensitivePath_PreservesPathCase()
+        public void ResponseCacheKeyProvider_CreateStorageBaseKey_CaseSensitivePath_PreservesPathCase()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider(new ResponseCacheOptions()
             {
@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryByKey_Throws_IfVaryByRulesIsNull()
+        public void ResponseCacheKeyProvider_CreateStorageVaryByKey_Throws_IfVaryByRulesIsNull()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryKey_ReturnsCachedVaryByGuid_IfVaryByRulesIsEmpty()
+        public void ResponseCacheKeyProvider_CreateStorageVaryKey_ReturnsCachedVaryByGuid_IfVaryByRulesIsEmpty()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -79,7 +79,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryKey_IncludesListedHeadersOnly()
+        public void ResponseCacheKeyProvider_CreateStorageVaryKey_IncludesListedHeadersOnly()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryKey_IncludesListedParamsOnly()
+        public void ResponseCacheKeyProvider_CreateStorageVaryKey_IncludesListedParamsOnly()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryKey_IncludesParams_ParamNameCaseInsensitive_UseParamCasing()
+        public void ResponseCacheKeyProvider_CreateStorageVaryKey_IncludesParams_ParamNameCaseInsensitive_UseParamCasing()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -127,7 +127,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryKey_IncludesAllQueryParamsGivenAsterisk()
+        public void ResponseCacheKeyProvider_CreateStorageVaryKey_IncludesAllQueryParamsGivenAsterisk()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();
@@ -145,7 +145,7 @@ namespace Microsoft.AspNetCore.ResponseCaching.Tests
         }
 
         [Fact]
-        public void DefaultKeyProvider_CreateStorageVaryKey_IncludesListedHeadersAndParams()
+        public void ResponseCacheKeyProvider_CreateStorageVaryKey_IncludesListedHeadersAndParams()
         {
             var cacheKeyProvider = TestUtils.CreateTestKeyProvider();
             var context = TestUtils.CreateTestContext();

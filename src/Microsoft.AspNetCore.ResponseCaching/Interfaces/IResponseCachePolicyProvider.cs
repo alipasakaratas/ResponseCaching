@@ -6,21 +6,21 @@ namespace Microsoft.AspNetCore.ResponseCaching
     public interface IResponseCachePolicyProvider
     {
         /// <summary>
-        /// Determine the cacheability of an HTTP request.
+        /// Determine wehther the response cache middleware should be executed for the incoming HTTP request.
         /// </summary>
         /// <param name="context">The <see cref="ResponseCacheContext"/>.</param>
         /// <returns><c>true</c> if the request is cacheable; otherwise <c>false</c>.</returns>
         bool IsRequestCacheable(ResponseCacheContext context);
 
         /// <summary>
-        /// Determine the cacheability of an HTTP response.
+        /// Determine whether the response received by the middleware be cached for future requests.
         /// </summary>
         /// <param name="context">The <see cref="ResponseCacheContext"/>.</param>
         /// <returns><c>true</c> if the response is cacheable; otherwise <c>false</c>.</returns>
         bool IsResponseCacheable(ResponseCacheContext context);
 
         /// <summary>
-        /// Determine the freshness of the cached entry.
+        /// Determine whether the response retrieved from the response cache is fresh and be served.
         /// </summary>
         /// <param name="context">The <see cref="ResponseCacheContext"/>.</param>
         /// <returns><c>true</c> if the cached entry is fresh; otherwise <c>false</c>.</returns>
