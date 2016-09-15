@@ -376,39 +376,61 @@ namespace Microsoft.AspNetCore.ResponseCaching
             return false;
         }
 
+        private static readonly char[] HeaderSeparators = new[] { ',', ' ' };
+
         // Split by commas and normalize order and casing
         internal static StringValues GetNormalizedHeaderStringValues(StringValues stringValues)
         {
-            var containsComma = false;
+            IList<StringSegment> separatedHeaders = null;
+            var headersContainingSeparators = 0;
 
             foreach (var value in stringValues)
             {
-                if (value.IndexOf(',') >= 0)
+                if (value.IndexOfAny(HeaderSeparators) >= 0)
                 {
-                    containsComma = true;
-                    break;
+                    headersContainingSeparators++;
+
+                    if (separatedHeaders == null)
+                    {
+                        separatedHeaders = new List<StringSegment>();
+                    }
+
+                    foreach (var token in new StringTokenizer(value, HeaderSeparators))
+                    {
+                        if (token.Length > 0)
+                        {
+                            separatedHeaders.Add(token);
+                        }
+                    }
                 }
             }
 
-            if (!containsComma)
+            if (headersContainingSeparators == 0)
             {
                 return GetOrderCasingNormalizedStringValues(stringValues);
             }
             else
             {
-                var headers = new List<string>(stringValues.Count);
+                var headers = new string[stringValues.Count + separatedHeaders.Count - headersContainingSeparators];
+                var headersIndex = 0;
+
                 foreach (var value in stringValues)
                 {
-                    foreach (var header in value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                    if (value.IndexOfAny(HeaderSeparators) == -1)
                     {
-                        headers.Add(header.ToUpperInvariant());
+                        headers[headersIndex++] = value.ToUpperInvariant();
                     }
                 }
 
-                // Since the casing has already been normalized, use Ordinal comparison
-                headers.Sort(StringComparer.Ordinal);
+                foreach (var header in separatedHeaders)
+                {
+                    headers[headersIndex++] = header.Value.ToUpperInvariant();
+                }
 
-                return new StringValues(headers.ToArray());
+                // Since the casing has already been normalized, use Ordinal comparison
+                Array.Sort(headers, StringComparer.Ordinal);
+
+                return new StringValues(headers);
             }
         }
 
